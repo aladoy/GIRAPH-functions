@@ -26,6 +26,7 @@ def import_data(db, user, dat, name, pk, schema=None, idx_geom=False):
     from sqlalchemy import create_engine
     import psycopg2 as ps
     import geopandas as gpd
+    import geoalchemy2
 
     engine, conn, cursor=connect_db(db,user)
 
