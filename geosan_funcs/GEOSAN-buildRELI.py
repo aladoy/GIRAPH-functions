@@ -16,12 +16,8 @@ import geopandas as gpd
 from shapely.geometry import Point, Polygon
 from shapely.ops import unary_union
 
-# GIRAPH-functions REPOSITORY
 sys.path.append(os.path.dirname(sys.path[0]))
-try:
-    import basic_utils as u
-except FileNotFoundError:
-    print("Wrong file or file path")
+import basic_utils as u
 
 # DIRECTORIES
 data_dir: str = (r"/mnt/data/GEOSAN/GEOSAN DB/data")
