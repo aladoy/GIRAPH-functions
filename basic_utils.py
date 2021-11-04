@@ -15,3 +15,27 @@ def save_gdf(path, file_name, gdf, driver):
 
     except Exception:
         print('Error while saving data on disk')
+
+
+def find_nearest_reli(row, reli_centroids, radius=None):
+    '''
+    This function retrieves the nearest neighbor (Point) from a given Point.
+    To speed-up the process, the user can restrict the set of destination
+    points to a given neighborhood (radius around the point of origin).
+    Outputs: nearest RELI index
+    '''
+    from shapely.ops import nearest_points
+
+    if radius is not None:
+        neighborhood = reli_centroids.loc[
+            reli_centroids.intersects(row.geometry.buffer(500))]
+        nearest_geom = nearest_points(
+            row.geometry, neighborhood.geometry.unary_union)[1]  # [0] origin
+    else:
+        nearest_geom = nearest_points(
+            row.geometry, reli_centroids.geometry.unary_union)[1]  # [0] origin
+
+    # retrieve corresponding reli
+    nearest_reli = reli_centroids.loc[reli_centroids.geometry == nearest_geom]
+
+    return nearest_reli
