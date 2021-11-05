@@ -28,7 +28,7 @@ def find_nearest_reli(row, reli_centroids, radius=None):
 
     if radius is not None:
         neighborhood = reli_centroids.loc[
-            reli_centroids.intersects(row.geometry.buffer(500))]
+            reli_centroids.intersects(row.geometry.buffer(radius))]
         nearest_geom = nearest_points(
             row.geometry, neighborhood.geometry.unary_union)[1]  # [0] origin
     else:
