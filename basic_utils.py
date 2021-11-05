@@ -22,20 +22,28 @@ def find_nearest_reli(row, reli_centroids, radius=None):
     This function retrieves the nearest neighbor (Point) from a given Point.
     To speed-up the process, the user can restrict the set of destination
     points to a given neighborhood (radius around the point of origin).
-    Outputs: nearest RELI index
+    Outputs: nearest RELI index (NaN for isolated point)
     '''
     from shapely.ops import nearest_points
+    import numpy as np
 
     if radius is not None:
         neighborhood = reli_centroids.loc[
             reli_centroids.intersects(row.geometry.buffer(radius))]
-        nearest_geom = nearest_points(
-            row.geometry, neighborhood.geometry.unary_union)[1]  # [0] origin
-    else:
-        nearest_geom = nearest_points(
-            row.geometry, reli_centroids.geometry.unary_union)[1]  # [0] origin
 
-    # retrieve corresponding reli
-    nearest_reli = reli_centroids.loc[reli_centroids.geometry == nearest_geom]
+        # if no RELI can be found around the given radius (isolated point)
+        if neighborhood.empty:
+            nearest_reli = np.nan
+        else:
+            nearest_reli = reli_centroids.loc[
+                reli_centroids.geometry == nearest_points(
+                    row.geometry, neighborhood.geometry.unary_union)[1],
+                'reli'].values[0]
+
+    else:
+        nearest_reli = reli_centroids.loc[
+            reli_centroids.geometry == nearest_points(
+                row.geometry, reli_centroids.geometry.unary_union)[1],
+            'reli'].values[0]
 
     return nearest_reli
