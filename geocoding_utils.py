@@ -391,190 +391,6 @@ def get_coords(row, regbl, npa, level):
     return e, n, egid, note_geocoding, c
 
 
-#
-#
-# # FUNCTION GEOCODING
-#
-# def get_coords_old(row, regbl, npa, fuzzy_level):
-#
-#     import re
-#     import difflib
-#     import pandas as pd
-#     import numpy as np
-#     import math
-#
-#     #print(row['index'])
-#
-#     addr = regbl.copy()
-#
-#     if not (row.npa in list(addr.dplz4.unique())):
-#         addr.dplz4 = addr.gdename
-#         row.npa = row.ville
-#
-#     if pd.isnull(row.strname):
-#         e, n = npa_centroid(row.ville, row.npa, npa)
-#         egid = np.nan
-#         if math.isnan(e) | math.isnan(n):
-#             note_geocoding = 'To remove from the dataset'
-#             c = 'CASE 1'
-#         else:
-#             note_geocoding = 'Geocoded at NPA centroid. No street address.'
-#             c = 'CASE 2'
-#
-#     elif pd.isnull(row.deinr):
-#         try:
-#             matches = addr[(addr.strname == row.strname)
-#                            & (addr.dplz4 == row.npa)
-#                            ].sort_values('deinr').iloc[0]
-#             e, n, egid = matches.gkode, matches.gkodn, matches.egid
-#             note_geocoding = 'Geocoded at street.'
-#             c = 'CASE 3'
-#
-#         except IndexError:
-#             try:
-#                 fuzzy_rue = difflib.get_close_matches(
-#                     row.strname,
-#                     addr[addr.dplz4 == row.npa].strname,
-#                     1, fuzzy_level)[0]
-#                 matches = addr[(addr.strname == fuzzy_rue)
-#                                & (addr.dplz4 == row.npa)
-#                                ].sort_values('deinr').iloc[0]
-#                 e, n, egid = matches.gkode, matches.gkodn, matches.egid
-#                 note_geocoding = 'Geocoded at street. Fuzzy matching.'
-#                 c = 'CASE 4'
-#
-#             except IndexError:
-#                 e, n = npa_centroid(row.ville, row.npa, npa)
-#                 egid = np.nan
-#                 if math.isnan(e) | math.isnan(n):
-#                     note_geocoding = 'To remove from the dataset'
-#                     c = 'CASE 5'
-#                 else:
-#                     note_geocoding = ('Geocoded at NPA centroid. '
-#                                       'No street number.')
-#                     c = 'CASE 6'
-#     else:
-#         try:
-#             matches = addr[(addr.strname == row.strname)
-#                            & (addr.deinr == row.deinr)
-#                            & (addr.dplz4 == row.npa)].iloc[0]
-#             e, n, egid = matches.gkode, matches.gkodn, matches.egid
-#             note_geocoding = 'Geocoded at building.'
-#             c = 'CASE 7'
-#
-#         except IndexError:
-#             try:
-#                 e, n, egid, label = search_addr_api(
-#                     str(row.deinr) + ' ' + remove_typo_addr(row.strname)
-#                     + ' ' + str(row.npa))
-#                 c = 'CASE 8'
-#
-#                 if label == 'No match found':
-#                     fuzzy_rue = difflib.get_close_matches(
-#                         row.strname,
-#                         addr[addr.dplz4 == row.npa].strname,
-#                         1, fuzzy_level)[0]
-#
-#                     matches = addr[(addr.strname == fuzzy_rue)
-#                                    & (addr.deinr == row.deinr)
-#                                    & (addr.dplz4 == row.npa)].iloc[0]
-#                     e, n, egid = matches.gkode, matches.gkodn, matches.egid
-#                     c = 'CASE 9'
-#
-#                 note_geocoding = 'Geocoded at building. Fuzzy matching.'
-#
-#             except IndexError:
-#                 try:
-#
-#                     list_no = addr[
-#                         (addr.strname == row.strname)
-#                         & (addr.dplz4 == row.npa)
-#                         & (~addr.deinr.isna())].deinr.map(
-#                              lambda x: float(re.findall('\d+', x)[0]))
-#
-#                     closest_no = str(min(list_no,
-#                                          key=lambda x: abs(x-float(re.findall(
-#                                              '\d+', row.deinr)[0]))))
-#
-#                     if addr[(addr.strname == row.strname)
-#                             & (addr.deinr == closest_no)
-#                             & (addr.dplz4 == row.npa)].empty:
-#                         matches = addr[
-#                             (addr.strname == row.strname)
-#                             & (addr.deinr.str.contains(
-#                                 '^' + closest_no + '[a-zA-Z]', regex=True))
-#                             & (addr.dplz4 == row.npa)
-#                             ].sort_values('deinr').iloc[0]
-#                         c = 'CASE 10'
-#
-#                     else:
-#                         matches = addr[(addr.strname == row.strname)
-#                                        & (addr.deinr == closest_no)
-#                                        & (addr.dplz4 == row.npa)
-#                                        ].sort_values('deinr').iloc[0]
-#                         c = 'CASE 11'
-#
-#                     e, n, egid = matches.gkode, matches.gkodn, matches.egid
-#                     note_geocoding = 'Geocoded at street.'
-#
-#                 except (IndexError, ValueError):
-#                     try:
-#                         fuzzy_rue = difflib.get_close_matches(
-#                             row.strname,
-#                             addr[addr.dplz4 == row.npa].strname,
-#                             1, fuzzy_level)[0]
-#
-#                         list_no = addr[
-#                             (addr.strname == fuzzy_rue)
-#                             & (addr.dplz4 == row.npa)
-#                             & (~addr.deinr.isna())].deinr.map(
-#                                 lambda x: int(re.findall('\d+', x)[0]))
-#
-#                         closest_no = str(
-#                             min(list_no, key=lambda x:
-#                                 abs(x-float(re.findall('\d+', row.deinr)[0]))))
-#
-#                         if addr[(addr.strname == fuzzy_rue)
-#                                 & (addr.deinr == closest_no)
-#                                 & (addr.dplz4 == row.npa)].empty:
-#
-#                             matches = addr[
-#                                 (addr.strname == fuzzy_rue)
-#                                 & (addr.deinr.str.contains(
-#                                     '^'+closest_no+'[a-zA-Z]', regex=True))
-#                                 & (addr.dplz4 == row.npa)
-#                                 ].sort_values('deinr').iloc[0]
-#                             c = 'CASE 12'
-#
-#                         else:
-#                             matches = addr[(addr.strname == fuzzy_rue)
-#                                            & (addr.deinr == closest_no)
-#                                            & (addr.dplz4 == row.npa)
-#                                            ].sort_values('deinr').iloc[0]
-#                             c = 'CASE 13'
-#
-#                         e, n, egid = matches.gkode, matches.gkodn, matches.egid
-#                         note_geocoding = 'Geocoded at street. Fuzzy matching.'
-#
-#                     except IndexError:
-#
-#                         if row.ville == row.npa:
-#                             e, n, egid = np.nan
-#                             note_geocoding = 'To remove from the dataset'
-#                             c = 'CASE 14'
-#
-#                         else:
-#                             e, n = npa_centroid(row.ville, row.npa, npa)
-#                             egid = np.nan
-#                             if math.isnan(e) | math.isnan(n):
-#                                 note_geocoding = 'To remove from the dataset'
-#                             else:
-#                                 note_geocoding = 'Geocoded at NPA centroid.'
-#                             c = 'CASE 15'
-#
-#     return e, n, egid, note_geocoding, c
-
-
 def remove_typo_addr(strname):
 
     stopwords = ['CHEMIN', 'RUE', 'AVENUE', 'ROUTE', 'RUELLE', 'CH.',
@@ -668,28 +484,28 @@ def check_if_institution(row, institutions):
 
     try:
         nom_institution = institutions.loc[
-            (institutions.rue == row.strname)
-            & (institutions.numero == row.deinr)
+            (institutions.rue == row.match_strname)
+            & (institutions.numero == row.match_deinr)
             & (institutions.npa == row.npa), 'nom'].values[0]
     except Exception:
         try:
             fuzzy_rue = difflib.get_close_matches(
-                row.strname,
+                row.match_strname,
                 institutions[institutions.npa == row.npa].rue,
-                1, 0.8)[0]
+                1, 0.9)[0]
             nom_institution = institutions.loc[
                 (institutions.rue == fuzzy_rue)
-                & (institutions.numero == row.deinr)
+                & (institutions.numero == row.match_deinr)
                 & (institutions.npa == row.npa), 'nom'].values[0]
         except Exception:
             try:
                 fuzzy_rue = difflib.get_close_matches(
-                    row.strname,
+                    row.match_strname,
                     institutions[institutions.localite == row.ville].rue,
-                    1, 0.8)[0]
+                    1, 0.9)[0]
                 nom_institution = institutions.loc[
                     (institutions.rue == fuzzy_rue)
-                    & (institutions.numero == row.deinr)
+                    & (institutions.numero == row.match_deinr)
                     & (institutions.localite == row.ville), 'nom'].values[0]
             except Exception:
                 nom_institution = np.nan
@@ -697,11 +513,56 @@ def check_if_institution(row, institutions):
     return nom_institution
 
 
+def retrieve_egid_info(row, cursor):
+    '''
+    Function to retrieve strname / deinr for a given egid. First, the
+    algorithm try to retrieve the information from GEOSAN DB and if it fails
+    (no corresponding egid), the egid info is retrieved from GeoAdmin API
+    (new address).
+    '''
+
+    try:
+        cursor.execute(("SELECT strname, deinr "
+                        "FROM regbl_2021 WHERE egid={}")
+                       .format(int(row.egid)))
+        res = cursor.fetchall()
+
+        # Extract the results in strname / deinr
+        strname = res[0][0]
+        deinr = res[0][1]
+
+        if not deinr:
+            strname_deinr = strname
+        else:
+            strname_deinr = strname + " " + deinr
+
+    except IndexError:
+
+        import time
+        import requests
+        time.sleep(0.1)
+        request = ("https://api3.geo.admin.ch/rest/services/api/MapServer/"
+                   "find?layer=ch.bfs.gebaeude_wohnungs_register&"
+                   "searchText=" + str(int(row.egid)) + "&searchField=egid"
+                   "&returnGeometry=false")
+        response = requests.get(request)
+
+        try:
+            res = response.json()['results'][0]
+            strname_deinr = res['attributes']['strname_deinr'][0]
+
+        except Exception:
+            raise Exception("Sorry, egid not found")
+
+    return strname_deinr
+
+
 def geocode_institution(row, cursor):
     '''Function to retrieve coordinates from the table institutions_medicosociales
     (GEOSAN DB)'''
     try:
-        cursor.execute(("SELECT ST_X(geometry), ST_Y(geometry), npa, localite "
+        cursor.execute(("SELECT ST_X(geometry), ST_Y(geometry),"
+                        "npa, localite, rue, numero "
                         "FROM institutions_medicosociales WHERE nom='{}'")
                        .format(row.institution_nom.replace("'", "''")))
         res = cursor.fetchall()
@@ -711,6 +572,8 @@ def geocode_institution(row, cursor):
     if len(res) == 1:
         gkode = res[0][0]
         gkodn = res[0][1]
+        strname = res[0][4]
+        deinr = res[0][5]
 
     elif len(res) > 1:
 
@@ -718,15 +581,25 @@ def geocode_institution(row, cursor):
             item = [i for i in res if i[2] == row.npa]
             gkode = item[0][0]
             gkodn = item[0][1]
+            strname = item[0][4]
+            deinr = item[0][5]
+
         except Exception:
             item = [i for i in res if i[3] == row.ville]
             gkode = item[0][0]
             gkodn = item[0][1]
+            strname = item[0][4]
+            deinr = item[0][5]
 
     else:
         raise Exception("An error occured")
 
-    return gkode, gkodn
+    if not deinr:
+        strname_deinr = strname
+    else:
+        strname_deinr = strname + " " + deinr
+
+    return gkode, gkodn, strname_deinr
 
 
 def remove_subset(dataset, subset_to_remove, subset_label, initial_size,
@@ -748,7 +621,7 @@ def remove_subset(dataset, subset_to_remove, subset_label, initial_size,
         perc = round((nb*100)/dataset.shape[0], 2)
     else:
         indivs = subset_to_remove.merge(df_for_stats,
-                                        on=['rue', 'npa', 'ville'],
+                                        on='init_addr',
                                         how='inner')
         nb = indivs.shape[0]
         perc = round((nb*100)/initial_size, 2)
