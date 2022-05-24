@@ -21,7 +21,7 @@ def connect_db(db,user):
 
 
 #FUNCTION TO IMPORT DATA (SPATIAL OR NO) INTO DB
-def import_data(db, user, dat, name, pk, schema=None, idx_geom=False):
+def import_data(db, user, dat, name, pk, schema=None, idx_geom=False, ifexists='replace'):
 
     from sqlalchemy import create_engine
     import psycopg2 as ps
@@ -36,10 +36,10 @@ def import_data(db, user, dat, name, pk, schema=None, idx_geom=False):
     if isinstance(dat, gpd.GeoDataFrame):
         print('Geometry Type :' + dat.geometry.geom_type.unique()[0])
         print('CRS :' + str(dat.crs))
-        dat.to_postgis(name, engine, schema=schema, if_exists='replace') #Add to postgis
+        dat.to_postgis(name, engine, schema=schema, if_exists=ifexists) #Add to postgis
 
     else:
-        dat.to_sql(name, engine, schema=schema, if_exists='replace',index=False) #Add to postgres
+        dat.to_sql(name, engine, schema=schema, if_exists=ifexists,index=False) #Add to postgres
 
     conn.commit()
 
