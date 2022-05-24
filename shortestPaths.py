@@ -30,17 +30,32 @@ def shortest_path(graph,originXY,targetXY):
     length = nx.shortest_path_length(G=graph, source=orig_node, target=target_node, weight='length')
     return length
 
+
+def find_nearest_target_distance(row, gdf_targets, graph):
+    res = pd.DataFrame()
+    orig_xy = (row.geometry.y, row.geometry.x)
+    for j, row_targ in gdf_targets.iterrows():
+        targets_xy = (row_targ.geometry.y, row_targ.geometry.x)
+        res.loc[j,'target_id']=row_targ.id
+        try:
+            res.loc[j,'target_dist']=shortest_path(graph,orig_xy,targets_xy)
+        except:
+            res.loc[j,'target_dist']=np.nan
+    nearest_target=res.loc[res['target_dist'].idxmin(skipna=True)]
+    return nearest_target.target_id, nearest_target.target_dist
+
+
 #RETURN THE ID AND THE DISTANCE OF THE NEAREST TARGET FOR EACH ORIGIN POINT
 def compute_nearest_target_distance(gdf_origins, gdf_targets, graph):
     #Iterrate across geodatframe with origins
     for i, row_orig in gdf_origins.iterrows():
         #Define origin x/y coordinats
-        orig_xy = (row_orig.y, row_orig.x)
+        orig_xy = (row_orig.geometry.y, row_orig.geometry.x)
         #Create empty dataframe that will store the shortest path to each vaccination center
         res = pd.DataFrame()
         for j, row_targ in gdf_targets.iterrows():
             # Get target x and y coordinates
-            targets_xy = (row_targ.y, row_targ.x)
+            targets_xy = (row_targ.geometry.y, row_targ.geometry.x)
             #Create dataframe to store results
             res.loc[j,'target_id']=row_targ.id
             try:
