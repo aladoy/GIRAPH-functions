@@ -1,19 +1,19 @@
 # FUNCTION TO SAVE FILES
 
 
-def save_gdf(path, file_name, gdf, driver='GPKG', layer=None):
+def save_gdf(path, file_name, gdf, driver="GPKG", layer=None, del_exist=True):
 
     import os
 
     file_src = os.sep.join([path, file_name])
 
+    if (del_exist) & (os.path.exists(file_src)):
+        os.remove(file_src)
+    
     try:
-        if os.path.exists(file_src):
-            os.remove(file_src)
-        gdf.to_file(file_src, driver=driver, layer=layer)
+        gdf.to_file(file_src, driver=driver, layer=layer) 
         print("Sucess")
         print("File saved ", file_src)
-
     except Exception:
         print("Error while saving data on disk")
 
