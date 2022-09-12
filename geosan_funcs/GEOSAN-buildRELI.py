@@ -1,12 +1,10 @@
-
-'''
+"""
 This code builds GIS files for the state of Vaud's hectometric grid.
-The input a CSV file containing the geometric coordinates of the
+The input is a CSV file containing the geometric coordinates of the
 bottom-left corners of each inhabited hectare (RELI) for the whole Switzerland.
-The code then filters the hectares for the state of Vaud and create a Point
-data file representing the centroid of each hectare, and a Polygon data file
-representing the spatial extent of each hectare.
-'''
+The code then filters the hectares for the state of Vaud and create a GPKG
+data file with statpop data at the: RELI point, RELI centroid, and RELI polygon.
+"""
 
 # LIBRARIES
 import pandas as pd
@@ -15,27 +13,41 @@ import sys
 import geopandas as gpd
 from shapely.geometry import Point, Polygon
 from shapely.ops import unary_union
+from shapely import wkb
 
-sys.path.append(os.path.dirname(sys.path[0]))
-import basic_utils as u
+try:
+    import basic_utils as u
+except FileNotFoundError:
+    print("Wrong file or file path")
 
 # DIRECTORIES
-data_dir: str = (r"/mnt/data/GEOSAN/GEOSAN DB/data")
-output_dir = os.sep.join([data_dir, 'STATPOP 2020/processed_data'])
+geosan_db_dir: str = (r"/mnt/data/GEOSAN/GEOSAN DB/data")
+output_dir = os.sep.join([geosan_db_dir, "STATPOP/2021"])
 
 # IMPORT DATA
 statpop = pd.read_csv(
-    os.sep.join([data_dir, 'STATPOP 2020/STATPOP2020.csv']), sep=';')
+    os.sep.join([geosan_db_dir, "STATPOP/2021/STATPOP2021.csv"]), sep=";"
+)
 
 cantons = gpd.read_file(
-    os.sep.join([data_dir, 'SWISS BOUNDARIES 2021/swissBOUNDARIES3D_1_3_TLM_KANTONSGEBIET.shp']))
+    os.sep.join(
+        [
+            geosan_db_dir,
+            "SWISS BOUNDARIES/June 2022/swissBOUNDARIES3D_1_3_TLM_KANTONSGEBIET.shp",
+        ]
+    )
+)
 cantons = cantons.set_crs(2056, allow_override=True)
+# Remove Z-dimension
+cantons = u.convert_3D_to_2D(cantons)
 
 # CONVERT STATPOP TO GEODATAFRAME
-statpop = statpop.assign(geometry=statpop.apply(
-    lambda row: Point(row.E_KOORD, row.N_KOORD), axis=1))
-statpop_gdf = gpd.GeoDataFrame(statpop, geometry=statpop.geometry,
-                               crs={'init': 'epsg:2056'})
+statpop = statpop.assign(
+    geometry=statpop.apply(lambda row: Point(row.E_KOORD, row.N_KOORD), axis=1)
+)
+statpop_gdf = gpd.GeoDataFrame(
+    statpop, geometry=statpop.geometry, crs={"init": "epsg:2056"}
+)
 
 # FILTER FOR THE CANTON OF VAUD
 
@@ -51,22 +63,54 @@ statpop_gdf = gpd.GeoDataFrame(statpop, geometry=statpop.geometry,
 # vd_geom = cantons[cantons.NAME == 'Vaud'].geometry.unary_union
 # statpop_gdf_vd = candidates.loc[candidates.intersects(vd_geom)]
 
-vd_geom = cantons[cantons.NAME == 'Vaud'].geometry.unary_union
-%time statpop_gdf_vd = statpop_gdf[statpop_gdf.geometry.intersects(vd_geom)]
+vd_geom = cantons[cantons.NAME == "Vaud"].geometry.unary_union
+statpop_gdf_vd = statpop_gdf[statpop_gdf.geometry.intersects(vd_geom)]
 
 # Graphical result
-statpop_gdf_vd.plot(color='black', markersize=1)
-
+# statpop_gdf_vd.plot(color="black", markersize=1)
 
 # COMPUTE RELI POLYGONS
-poly_geom = [Polygon(zip([xy[0], xy[0], xy[0]+100, xy[0]+100],
-                         [xy[1], xy[1]+100, xy[1]+100, xy[1]]))
-             for xy in zip(statpop_gdf_vd.E_KOORD, statpop_gdf_vd.N_KOORD)]
+poly_geom = [
+    Polygon(
+        zip(
+            [xy[0], xy[0], xy[0] + 100, xy[0] + 100],
+            [xy[1], xy[1] + 100, xy[1] + 100, xy[1]],
+        )
+    )
+    for xy in zip(statpop_gdf_vd.E_KOORD, statpop_gdf_vd.N_KOORD)
+]
 statpop_gdf_vd_poly = statpop_gdf_vd.copy()
 statpop_gdf_vd_poly.set_geometry(poly_geom, drop=True, inplace=True, crs=2056)
 
+# Centroids
+statpop_gdf_vd_centroids = statpop_gdf_vd_poly.copy()
+statpop_gdf_vd_centroids.geometry = statpop_gdf_vd_poly.centroid
+
 # SAVE RESULTS
-# Point file
-u.save_gdf(output_dir, 'statpopVD_point.gpkg', statpop_gdf_vd, 'GPKG')
+# Point file (original RELI)
+u.save_gdf(
+    output_dir,
+    "statpopVD.gpkg",
+    statpop_gdf_vd,
+    driver="GPKG",
+    layer="statpopVD_reli",
+    del_exist=True,
+)
+# Point file (RELI centroids)
+u.save_gdf(
+    output_dir,
+    "statpopVD.gpkg",
+    statpop_gdf_vd_centroids,
+    driver="GPKG",
+    layer="statpopVD_centroid",
+    del_exist=False,
+)
 # Polygon file
-u.save_gdf(output_dir, 'statpopVD_poly.gpkg', statpop_gdf_vd_poly, 'GPKG')
+u.save_gdf(
+    output_dir,
+    "statpopVD.gpkg",
+    statpop_gdf_vd_poly,
+    driver="GPKG",
+    layer="statpopVD_polygon",
+    del_exist=False,
+)
