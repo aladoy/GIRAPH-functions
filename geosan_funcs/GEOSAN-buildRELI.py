@@ -14,6 +14,7 @@ import geopandas as gpd
 from shapely.geometry import Point, Polygon
 from shapely.ops import unary_union
 from shapely import wkb
+from shapely import speedups
 
 try:
     import basic_utils as u
@@ -49,7 +50,7 @@ statpop_gdf = gpd.GeoDataFrame(
     statpop, geometry=statpop.geometry, crs={"init": "epsg:2056"}
 )
 
-# FILTER FOR THE CANTON OF VAUD
+# CREATE THE SWISS HECTOMETRIC GRID
 
 # Select point candidates (intersecting the bounding boxes of VD geometry)
 # vd_bounds = list(cantons[cantons.NAME == 'Vaud'].bounds.values[0])
@@ -63,8 +64,9 @@ statpop_gdf = gpd.GeoDataFrame(
 # vd_geom = cantons[cantons.NAME == 'Vaud'].geometry.unary_union
 # statpop_gdf_vd = candidates.loc[candidates.intersects(vd_geom)]
 
-vd_geom = cantons[cantons.NAME == "Vaud"].geometry.unary_union
-statpop_gdf_vd = statpop_gdf[statpop_gdf.geometry.intersects(vd_geom)]
+ch_geom = cantons.geometry.unary_union
+speedups.enable()
+statpop_gdf = statpop_gdf[statpop_gdf.geometry.intersects(ch_geom)]
 
 # Graphical result
 # statpop_gdf_vd.plot(color="black", markersize=1)
@@ -77,40 +79,40 @@ poly_geom = [
             [xy[1], xy[1] + 100, xy[1] + 100, xy[1]],
         )
     )
-    for xy in zip(statpop_gdf_vd.E_KOORD, statpop_gdf_vd.N_KOORD)
+    for xy in zip(statpop_gdf.E_KOORD, statpop_gdf.N_KOORD)
 ]
-statpop_gdf_vd_poly = statpop_gdf_vd.copy()
-statpop_gdf_vd_poly.set_geometry(poly_geom, drop=True, inplace=True, crs=2056)
+statpop_gdf_poly = statpop_gdf.copy()
+statpop_gdf_poly.set_geometry(poly_geom, drop=True, inplace=True, crs=2056)
 
 # Centroids
-statpop_gdf_vd_centroids = statpop_gdf_vd_poly.copy()
-statpop_gdf_vd_centroids.geometry = statpop_gdf_vd_poly.centroid
+statpop_gdf_centroids = statpop_gdf_poly.copy()
+statpop_gdf_centroids.geometry = statpop_gdf_poly.centroid
 
 # SAVE RESULTS
 # Point file (original RELI)
 u.save_gdf(
     output_dir,
-    "statpopVD.gpkg",
-    statpop_gdf_vd,
+    "statpop.gpkg",
+    statpop_gdf,
     driver="GPKG",
-    layer="statpopVD_reli",
+    layer="statpop_reli",
     del_exist=True,
 )
 # Point file (RELI centroids)
 u.save_gdf(
     output_dir,
-    "statpopVD.gpkg",
-    statpop_gdf_vd_centroids,
+    "statpop.gpkg",
+    statpop_gdf_centroids,
     driver="GPKG",
-    layer="statpopVD_centroid",
+    layer="statpop_centroid",
     del_exist=False,
 )
 # Polygon file
 u.save_gdf(
     output_dir,
-    "statpopVD.gpkg",
-    statpop_gdf_vd_poly,
+    "statpop.gpkg",
+    statpop_gdf_poly,
     driver="GPKG",
-    layer="statpopVD_polygon",
+    layer="statpop_polygon",
     del_exist=False,
 )

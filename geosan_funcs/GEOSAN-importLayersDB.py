@@ -141,27 +141,27 @@ db.import_data(
 
 # HECTOMETRIC GRID
 reli = gpd.read_file(
-    os.sep.join([geosan_db_dir, "STATPOP/2021/statpopVD.gpkg"]),
+    os.sep.join([geosan_db_dir, "STATPOP/2021/statpop.gpkg"]),
     driver="GPKG",
-    layer="statpopVD_reli",
+    layer="statpop_reli",
 )
 reli = reli[["RELI", "E_KOORD", "N_KOORD", "B21BTOT", "geometry"]]
-db.import_data("geosan", "aladoy", reli, "vd_reli_point", "reli", idx_geom=True)
+db.import_data("geosan", "aladoy", reli, "reli_point", "reli", idx_geom=True)
 centroid = gpd.read_file(
-    os.sep.join([geosan_db_dir, "STATPOP/2021/statpopVD.gpkg"]),
+    os.sep.join([geosan_db_dir, "STATPOP/2021/statpop.gpkg"]),
     driver="GPKG",
-    layer="statpopVD_centroid",
+    layer="statpop_centroid",
 )
 centroid = centroid[["RELI", "E_KOORD", "N_KOORD", "B21BTOT", "geometry"]]
-db.import_data("geosan", "aladoy", centroid, "vd_reli_centroid", "reli", idx_geom=True)
+db.import_data("geosan", "aladoy", centroid, "reli_centroid", "reli", idx_geom=True)
 
 ha_polygon = gpd.read_file(
-    os.sep.join([geosan_db_dir, "STATPOP/2021/statpopVD.gpkg"]),
+    os.sep.join([geosan_db_dir, "STATPOP/2021/statpop.gpkg"]),
     driver="GPKG",
-    layer="statpopVD_polygon",
+    layer="statpop_polygon",
 )
 ha_polygon = ha_polygon[["RELI", "E_KOORD", "N_KOORD", "B21BTOT", "geometry"]]
-db.import_data("geosan", "aladoy", ha_polygon, "vd_reli_polygon", "reli", idx_geom=True)
+db.import_data("geosan", "aladoy", ha_polygon, "reli_polygon", "reli", idx_geom=True)
 
 
 # MICROREGIONS
