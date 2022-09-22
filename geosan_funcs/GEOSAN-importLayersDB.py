@@ -99,45 +99,21 @@ districts = u.convert_3D_to_2D(districts)
 db.import_data("geosan", "aladoy", districts, "districts", "uuid", idx_geom=True)
 
 # Municipalities
+# Use SWISS TLM REGIO dataset instead of SWISS BOUNDARIES because lakes are separated from municipalities
 municipalities = gpd.read_file(
     os.sep.join(
         [
             geosan_db_dir,
-            "SWISS BOUNDARIES/June 2022/swissBOUNDARIES3D_1_3_TLM_HOHEITSGEBIET.shp",
+            "SWISS TLM REGIO/2021/swissTLMRegio_Boundaries_LV95/swissTLMRegio_HOHEITSGEBIET_LV95.shp",
         ]
     )
 )
-municipalities = municipalities.to_crs(2056)
-municipalities.columns = [
-    "uuid",
-    "date_modif",
-    "date_creat",
-    "data_yr_creat",
-    "data_mth_creat",
-    "data_yr_verif",
-    "data_mth_verif",
-    "modif",
-    "source",
-    "data_yr_upd",
-    "data_mth_upd",
-    "admin_level",
-    "district_num",
-    "lake_area",
-    "quality",
-    "name",
-    "canton_num",
-    "country_code",
-    "nb_hab",
-    "num",
-    "part",
-    "area",
-    "area_code",
-    "geometry",
-]
+municipalities.crs = 2056
 municipalities = u.convert_3D_to_2D(municipalities)
 db.import_data(
-    "geosan", "aladoy", municipalities, "municipalities", "uuid", idx_geom=True
+    "geosan", "aladoy", municipalities, "municipalities", "objectid", idx_geom=True
 )
+
 
 # HECTOMETRIC GRID
 reli = gpd.read_file(
