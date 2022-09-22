@@ -45,7 +45,8 @@ DROP MATERIALIZED VIEW IF EXISTS lausanne_region_mun;
 
 CREATE MATERIALIZED VIEW lausanne_region_mun
 AS
-SELECT * FROM municipalities WHERE name IN ('Belmont-sur-Lausanne', 'Lutry', 'Jorat-Mézières', 'Montpreveyres', 'Paudex', 'Pully', 'Bottens', 'Bretigny-sur-Morrens', 'Cheseaux-sur-Lausanne', 'Cugy (VD)', 'Froideville', 'Jouxtens-Mézery', 'Lausanne', 'Epalinges', 'Le Mont-sur-Lausanne', 'Morrens (VD)', 'Prilly', 'Romanel-sur-Lausanne', 'Bussigny', 'Chavannes-près-Renens', 'Crissier', 'Ecublens (VD)', 'Prilly', 'Renens (VD)', 'Saint-Sulpice (VD)', 'Villars-Sainte-Croix', 'Savigny', 'Servion');
+SELECT * FROM municipalities WHERE name IN ('Belmont-sur-Lausanne', 'Lutry', 'Jorat-Mézières', 'Montpreveyres', 'Paudex', 'Pully', 'Bottens', 'Bretigny-sur-Morrens', 'Cheseaux-sur-Lausanne', 'Cugy (VD)', 'Froideville', 'Jouxtens-Mézery', 'Lausanne', 'Epalinges', 'Le Mont-sur-Lausanne', 'Morrens (VD)', 'Prilly', 'Romanel-sur-Lausanne', 'Bussigny', 'Chavannes-près-Renens', 'Crissier', 'Ecublens (VD)', 'Prilly', 'Renens (VD)', 'Saint-Sulpice (VD)', 'Villars-Sainte-Croix', 'Savigny', 'Servion')
+AND icc='CH';
 
 
 DROP MATERIALIZED VIEW IF EXISTS vd_mgis_ha;
