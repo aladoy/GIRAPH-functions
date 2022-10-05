@@ -22,7 +22,7 @@ data_dir: str = r"/mnt/data/GEOSAN/GEOSAN DB/data/"
 
 # OPEN FILE
 sectors = gpd.read_file(os.sep.join(
-    [data_dir, "REVENU LAUSANNE 2009/Revenus_moyen_median2.shp"]))
+    [data_dir, "SOUS-SECTEURS STATISIQUES LAUSANNE/Revenus_moyen_median2.shp"]))
 sectors = sectors.to_crs(2056)
 sectors = sectors[["PKUID", "NUMSECTEUR", "NOMSECTEUR", "geometry"]]
 
