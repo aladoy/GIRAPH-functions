@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
-from libpysal.weights import min_threshold_distance, Kernel, DistanceBand
+from libpysal.weights import min_threshold_distance, Kernel, DistanceBand, Queen, Rook
 from esda.moran import Moran, Moran_Local
 from esda import fdr
 from splot import esda as esdaplot
@@ -39,7 +39,7 @@ def get_min_threshold(gdf):
     return threshold
 
 
-def compute_distance_weights(
+def compute_spatial_weights(
     gdf, type, radius=None, ids=None, kernel_args=None, distanceband_args=None
 ):
     '''
@@ -69,9 +69,15 @@ def compute_distance_weights(
             gdf, bandwidth=radius, ids=ids, **kernel_args
         )
 
+    elif type == "Queen":
+        w = Queen.from_dataframe(gdf, ids=ids)
+
+    elif type == "Rook":
+        w = Rook.from_dataframe(gdf, ids=ids)
+
     else:
         raise TypeError(
-            "Weights other than DistanceBand and Kernel are not integrated yet."
+            "Other types of spatial weight are not integrated yet."
         )
 
     return w
@@ -96,7 +102,7 @@ def map_nb_neighbors(gdf, w, basemap):
     plt.title("Number of neighbors per location")
 
 
-def map_spatial_neighbors(gdf, w, column_id, idx):
+def map_spatial_neighbors(gdf, w, column_id, idx, bandwith=False):
 
     segments = []
 
@@ -143,9 +149,11 @@ def map_spatial_neighbors(gdf, w, column_id, idx):
     # Add OSM basemap
     map.add_basemap(ax, 2056)
 
-    bandwidth_used = round(w.bandwidth[dict_index[idx]][0])
-    plt.title('Spatial neighbors of ' + column_id + ': ' +
-              str(idx) + ' (bandwidth= ' + str(bandwidth_used) + 'm)')
+    # Add information about the adaptative bandwith used for this observation
+    if bandwith is True:
+        bandwidth_used = round(w.bandwidth[dict_index[idx]][0])
+        plt.title('Spatial neighbors of ' + column_id + ': ' +
+                  str(idx) + ' (bandwidth= ' + str(bandwidth_used) + 'm)')
 
 
 def global_moran(var, weight, perms=9999):
@@ -174,6 +182,12 @@ def local_moran(gdf, var, weight, perms=9999, seed=None, alpha=0.05, fdr_adj=Tru
     LMo_df = pd.DataFrame(np.column_stack(
         (LMo.Is, LMo.q, LMo.p_sim)), columns=['Is', 'quads', 'p_sim'])
 
+    # Identify islands and replace Moran statistics by np.nan (default is Is=0)
+    islands = []
+    for key in weight.islands:
+        islands.append(weight.id2i[key])
+    LMo_df.loc[islands, :] = np.nan
+
     if fdr_adj is True:
         p_threshold = fdr(LMo_df.p_sim, alpha=alpha)
     else:
@@ -181,16 +195,15 @@ def local_moran(gdf, var, weight, perms=9999, seed=None, alpha=0.05, fdr_adj=Tru
 
     print('p-value threshold: ', p_threshold)
 
+    LMo_df = gdf.merge(LMo_df, how='left', left_index=True, right_index=True)
+
     LMo_df['lisa_cluster'] = LMo_df.quads
     LMo_df.loc[LMo_df.p_sim > p_threshold, 'lisa_cluster'] = 0
-    LMo_df.loc[weight.islands, 'lisa_cluster'] = -9
 
     labels = {1: 'HH', 2: 'LL', 3: 'LH', 4: 'HL',
-              0: 'Not significant', -9: 'Neighborless'}
+              0: 'Not significant', np.nan: 'Neighborless'}
     LMo_df['lisa_labels'] = LMo_df['lisa_cluster'].map(labels)
     print(LMo_df.groupby(by='lisa_labels').size())
-
-    LMo_df = gdf.merge(LMo_df, how='left', left_index=True, right_index=True)
 
     return LMo_df, p_threshold
 
