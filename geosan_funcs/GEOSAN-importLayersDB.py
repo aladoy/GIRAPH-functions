@@ -1,11 +1,13 @@
 # LIBRARIES
 # Basic
+import fiona
 import pandas as pd
 import os
 import sys
 
 # Spatial
 import geopandas as gpd
+from shapely.geometry import Point
 
 
 # CONNECT TO GEOSAN DB
@@ -18,7 +20,7 @@ except FileNotFoundError:
 engine, conn, cursor = db.connect_db("geosan", "aladoy")
 
 # DIRECTORIES
-geosan_db_dir: str = (r"/mnt/data/GEOSAN/GEOSAN DB/data")
+geosan_db_dir: str = r"/mnt/data/GEOSAN/GEOSAN DB/data"
 
 # IMPORT DATA
 # Cantons
@@ -235,6 +237,31 @@ mmun = mmun.merge(
 db.import_data("geosan", "aladoy", mmun, "microgis_mun", "gdenr")
 
 
+# STATPOP (2021)
+statpop = pd.read_csv(
+    os.sep.join([geosan_db_dir, "STATPOP/2021/STATPOP2021.csv"]), sep=";"
+)
+db.import_data("geosan", "aladoy", statpop, "statpop2021", "RELI", ifexists="replace")
+
+
+# REGBL (2021)
+vd_addr = pd.read_csv(os.sep.join([geosan_db_dir, "REGBL/2021/VD.csv"]), sep=";")
+# Remove accents in object type
+vd_addr["GDENAME"] = vd_addr.GDENAME.map(g.strip_accents)
+vd_addr["STRNAME"] = vd_addr.STRNAME.map(g.strip_accents)
+vd_addr["DPLZNAME"] = vd_addr.DPLZNAME.map(g.strip_accents)
+# Convert object type to upper case
+vd_addr["GDENAME"] = vd_addr.GDENAME.map(str.upper)
+vd_addr["STRNAME"] = vd_addr.STRNAME.map(str.upper)
+vd_addr["DPLZNAME"] = vd_addr.DPLZNAME.map(str.upper)
+# Create a geometry column using Shapely
+vd_addr = vd_addr.assign(
+    geometry=vd_addr.apply(lambda row: Point(row.gkode, row.gkodn), axis=1)
+)
+vd_addr = gpd.GeoDataFrame(vd_addr, geometry=vd_addr.geometry, crs="EPSG:2056")
+# Convert to geodataframe
+db.import_data("geosan", "aladoy", vd_addr, "regbl2021", "egid,edid", idx_geom=True)
+
 # # VD npa
 # npa = gpd.read_file(r"./GEOSAN DB/data/MICROGIS NPA 2019/SF_COMPACT_LC_2019.shp")
 # npa.crs
@@ -311,27 +338,6 @@ db.import_data("geosan", "aladoy", mmun, "microgis_mun", "gdenr")
 #     pt, geometry=pt.geometry, crs={"init": "epsg:2056"}
 # )  # Convert to geodataframe
 # import_data(pt, "public_transport_stops", "Numero", True)
-
-
-# # REGBL (2021)
-# vd_addr = pd.read_csv(r"GEOSAN DB/data/REGBL 2021/VD.csv", delimiter=";")
-# vd_addr.shape
-# # Remove accents in object type
-# vd_addr["GDENAME"] = vd_addr.GDENAME.map(g.strip_accents)
-# vd_addr["STRNAME"] = vd_addr.STRNAME.map(g.strip_accents)
-# vd_addr["DPLZNAME"] = vd_addr.DPLZNAME.map(g.strip_accents)
-# # Convert object type to upper case
-# vd_addr["GDENAME"] = vd_addr.GDENAME.map(str.upper)
-# vd_addr["STRNAME"] = vd_addr.STRNAME.map(str.upper)
-# vd_addr["DPLZNAME"] = vd_addr.DPLZNAME.map(str.upper)
-# # Create a geometry column using Shapely
-# vd_addr = vd_addr.assign(
-#     geometry=vd_addr.apply(lambda row: Point(row.GKODE, row.GKODN), axis=1)
-# )
-# vd_addr = gpd.GeoDataFrame(
-#     vd_addr, geometry=vd_addr.geometry, crs="EPSG:2056"
-# )  # Convert to geodataframe
-# import_data(vd_addr, "regbl_2021", "egid,edid", True)
 
 # Close the connection
 conn.close()
