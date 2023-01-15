@@ -262,6 +262,19 @@ vd_addr = gpd.GeoDataFrame(vd_addr, geometry=vd_addr.geometry, crs="EPSG:2056")
 # Convert to geodataframe
 db.import_data("geosan", "aladoy", vd_addr, "regbl2021", "egid,edid", idx_geom=True)
 
+
+# DISTANCE TO SERVICES (OFS, 2018)
+dist_serv = pd.read_csv(
+    os.sep.join(
+        [geosan_db_dir, "ACCESSIBILITY TO SERVICES/ag-b-00.03-2018spop-csv.csv"]
+    ),
+    delimiter=";",
+)
+db.import_data(
+    "geosan", "aladoy", dist_serv, "distance_services", "RELI", ifexists="replace"
+)
+
+
 # # VD npa
 # npa = gpd.read_file(r"./GEOSAN DB/data/MICROGIS NPA 2019/SF_COMPACT_LC_2019.shp")
 # npa.crs
