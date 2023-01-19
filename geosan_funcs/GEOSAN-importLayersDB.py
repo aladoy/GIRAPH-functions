@@ -106,7 +106,7 @@ municipalities = gpd.read_file(
     os.sep.join(
         [
             geosan_db_dir,
-            "SWISS TLM REGIO/2021/swissTLMRegio_Boundaries_LV95/swissTLMRegio_HOHEITSGEBIET_LV95.shp",
+            "SWISS TLM REGIO/2022/swissTLMRegio_Boundaries_LV95/swissTLMRegio_HOHEITSGEBIET_LV95.shp",
         ]
     )
 )
