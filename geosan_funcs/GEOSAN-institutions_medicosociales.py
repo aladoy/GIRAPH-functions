@@ -1,11 +1,12 @@
-#LIBRARIES
-#Basic
+# LIBRARIES
+# Basic
 import pandas as pd
 import os
 import subprocess
 import sys
 import numpy as np
-#Spatial
+
+# Spatial
 import geopandas as gpd
 from geoalchemy2 import Geometry, WKTElement
 from shapely import wkt
@@ -13,334 +14,254 @@ from shapely.geometry import Point
 import shapely.speedups
 
 # Import functions from GIRAPH-functions repository
-sys.path.append(r'/mnt/data/GEOSAN/FUNCTIONS/GIRAPH-functions/')
+sys.path.append(r"/mnt/data/GEOSAN/FUNCTIONS/GIRAPH-functions/")
 try:
     import geocoding_utils as g
     import db_utils as db
 except FileNotFoundError:
     print("Wrong file or file path")
 
-#############
-#IMPORT DATA#
-#############
 
-path=r"/mnt/data/GEOSAN/GEOSAN DB/data/INSTITUTIONS MEDICO-SOCIALES 2020/"
+def main():
 
-#URGENCES
-urgences=gpd.read_file(path+"MN95_SSP_TPR_URGENCE.shp")
-urgences.dtypes
-urgences=urgences[['GROUPE','VOIE','NUMERO','NPA','LOCALITE','geometry']]
-urgences.columns=['NOM','RUE','NUMERO','NPA','LOCALITE','geometry']
-urgences['NOTE']=np.nan
-urgences['TYPE']='URGENCE'
+    #############
+    # IMPORT DATA#
+    #############
 
-#PERMANENCES DENTAIRES
-dentaire=gpd.read_file(path+"MN95_SSP_TPR_PERM_DENTAIRE.shp")
-dentaire.dtypes
-dentaire=dentaire[['GROUPE','VOIE','NUMERO','NPA','LOCALITE','geometry']]
-dentaire.columns=['NOM','RUE','NUMERO','NPA','LOCALITE','geometry']
-dentaire['NOTE']=np.nan
-dentaire['TYPE']='PERMANENCE DENTAIRE'
+    path = r"/mnt/data/GEOSAN/GEOSAN DB/data/INSTITUTIONS MEDICO-SOCIALES VD/2022/"
 
-#SOINS AIGUS (CLINIQUES, HOPITAUX, HOPITAUX PSYCHIATRIQUES)
-soinsaigus=gpd.read_file(path+"MN95_SSP_TPR_SOINS_AIGUS.shp")
-soinsaigus.dtypes
-soinsaigus=soinsaigus[['NOM','VOIE','NUMERO','NPA','LOCALITE','TYPE','geometry']]
-soinsaigus.columns=['NOM','RUE','NUMERO','NPA','LOCALITE','NOTE','geometry']
-soinsaigus['TYPE']='SOINS AIGUS'
+    # URGENCES
+    urgences = gpd.read_file(path + "MN95_SSP_TPR_URGENCE.shp")
+    urgences.dtypes
+    urgences.rename(
+        columns={"SERVICE": "NOTE", "GROUPE": "NOM", "VOIE": "RUE"}, inplace=True
+    )
+    urgences["EXPLOITANT"] = np.nan
+    urgences["TYPE"] = "URGENCE"
+    urgences = extract_attributes(urgences)
 
-#CENTRES MÉDICO-SOCIAUX
-cms=gpd.read_file(path+"MN95_SSP_TPR_CMS.shp")
-cms.dtypes
-cms=cms[['NOM','VOIE','NUMERO','NPA','LOCALITE','EXPLOITANT','geometry']]
-cms.columns=['NOM','RUE','NUMERO','NPA','LOCALITE','NOTE','geometry']
-cms['TYPE']='CMS'
+    # PERMANENCES DENTAIRES
+    dentaire = gpd.read_file(path + "MN95_SSP_TPR_PERM_DENTAIRE.shp")
+    dentaire.dtypes
+    dentaire.rename(
+        columns={"SERVICE": "NOTE", "GROUPE": "NOM", "VOIE": "RUE"}, inplace=True
+    )
+    dentaire["EXPLOITANT"] = np.nan
+    dentaire["TYPE"] = "PERMANENCE DENTAIRE"
+    dentaire = extract_attributes(dentaire)
 
-#ORGANISATIONS PRIVÉES DE SOINS À DOMICILE
-osad=gpd.read_file(path+"MN95_SSP_TPR_OSAD.shp")
-osad.dtypes
-osad=osad[['NOM','VOIE','NUMERO','NPA','LOCALITE','geometry']]
-osad.columns=['NOM','RUE','NUMERO','NPA','LOCALITE','geometry']
-osad['NOTE']=np.nan
-osad['TYPE']='OSAD'
+    # SOINS AIGUS (CLINIQUES, HOPITAUX, HOPITAUX PSYCHIATRIQUES)
+    soinsaigus = gpd.read_file(path + "MN95_SSP_TPR_SOINS_AIGUS.shp")
+    soinsaigus.dtypes
+    soinsaigus.rename(columns={"TYPE": "NOTE", "VOIE": "RUE"}, inplace=True)
+    soinsaigus["EXPLOITANT"] = np.nan
+    soinsaigus["TYPE"] = "SOINS AIGUS"
+    soinsaigus = extract_attributes(soinsaigus)
 
-#HOMES NON MÉDICALISÉS
-hnm=gpd.read_file(path+"MN95_SSP_TPR_HNM.shp")
-hnm.dtypes
-hnm=hnm[['NOM','VOIE','NUMERO','NPA','LOCALITE','EXPLOITANT','geometry']]
-hnm.columns=['NOM','RUE','NUMERO','NPA','LOCALITE','NOTE','geometry']
-hnm['TYPE']='HNM'
+    # CENTRES MÉDICO-SOCIAUX
+    cms = gpd.read_file(path + "MN95_SSP_TPR_CMS.shp")
+    cms.dtypes
+    cms.rename(columns={"VOIE": "RUE"}, inplace=True)
+    cms["TYPE"] = "CMS"
+    cms["NOTE"] = np.nan
+    cms = extract_attributes(cms)
 
-#PHARMACIES
-pharmacies=gpd.read_file(path+"MN95_SSP_TPR_PHARMACIE.shp")
-pharmacies.dtypes
-pharmacies=pharmacies[['NOM','VOIE','NUMERO','NPA','LOCALITE','EXPLOITANT','geometry']]
-pharmacies.columns=['NOM','RUE','NUMERO','NPA','LOCALITE','NOTE','geometry']
-pharmacies['TYPE']='PHARMACIE'
+    # ORGANISATIONS PRIVÉES DE SOINS À DOMICILE
+    osad = gpd.read_file(path + "MN95_SSP_TPR_OSAD.shp")
+    osad.dtypes
+    osad.rename(columns={"VOIE": "RUE"}, inplace=True)
+    osad["NOTE"] = np.nan
+    osad["EXPLOITANT"] = np.nan
+    osad["TYPE"] = "OSAD"
+    osad = extract_attributes(osad)
 
-#ESPACES DE PRÉVENTION
-prevention=gpd.read_file(path+"MN95_SSP_TPR_ESPACE_PREVENTION.shp")
-prevention.dtypes
-prevention=prevention[['NOM','VOIE','NUMERO','NPA','LOCALITE','geometry']]
-prevention.columns=['NOM','RUE','NUMERO','NPA','LOCALITE','geometry']
-prevention['NOTE']=np.nan
-prevention['TYPE']='ESPACE PREVENTION'
+    # HOMES NON MÉDICALISÉS
+    hnm = gpd.read_file(path + "MN95_SSP_TPR_HNM.shp")
+    hnm.dtypes
+    hnm.rename(columns={"VOIE": "RUE", "MISSION": "NOTE"}, inplace=True)
+    hnm["NOTE"] = np.nan
+    hnm["TYPE"] = "HNM"
+    hnm = extract_attributes(hnm)
 
-#BUREAUX D'INFORMATION ET D'ORIENTATION
-brios=gpd.read_file(path+"MN95_SSP_TPR_BRIOS.shp")
-brios.dtypes
-brios=brios[['NOM','VOIE','NUMERO','NPA','LOCALITE','geometry']]
-brios.columns=['NOM','RUE','NUMERO','NPA','LOCALITE','geometry']
-brios['NOTE']=np.nan
-brios['TYPE']='BRIOS'
+    # PHARMACIES
+    pharmacies = gpd.read_file(path + "MN95_SSP_TPR_PHARMACIE.shp")
+    pharmacies.dtypes
+    pharmacies.rename(columns={"VOIE": "RUE"}, inplace=True)
+    pharmacies["NOTE"] = np.nan
+    pharmacies["TYPE"] = "PHARMACIE"
+    pharmacies = extract_attributes(pharmacies)
 
-#CENTRES MÉMOIRE
-memoire=gpd.read_file(path+"MN95_SSP_TPR_CENTRE_MEMOIRE.shp")
-memoire.dtypes
-memoire=memoire[['NOM','VOIE','NUMERO','NPA','LOCALITE','geometry']]
-memoire.columns=['NOM','RUE','NUMERO','NPA','LOCALITE','geometry']
-memoire['NOTE']=np.nan
-memoire['TYPE']='CENTRE MEMOIRE'
+    # ESPACES DE PRÉVENTION
+    prevention = gpd.read_file(path + "MN95_SSP_TPR_ESPACE_PREVENTION.shp")
+    prevention.dtypes
+    prevention.rename(columns={"VOIE": "RUE"}, inplace=True)
+    prevention["EXPLOITANT"] = np.nan
+    prevention["NOTE"] = np.nan
+    prevention["TYPE"] = "ESPACE PREVENTION"
+    prevention = extract_attributes(prevention)
 
-#AGENCES D'ASSURANCES SOCIALES
-aas=gpd.read_file(path+"MN95_SSP_TPR_AAS.shp")
-aas.dtypes
-aas=aas[['NOM','VOIE','NUMERO','NPA','LOCALITE','geometry']]
-aas.columns=['NOM','RUE','NUMERO','NPA','LOCALITE','geometry']
-aas['NOTE']=np.nan
-aas['TYPE']='AAS'
+    # BUREAUX D'INFORMATION ET D'ORIENTATION
+    brios = gpd.read_file(path + "MN95_SSP_TPR_BRIOS.shp")
+    brios.dtypes
+    brios.rename(columns={"VOIE": "RUE"}, inplace=True)
+    brios["EXPLOITANT"] = np.nan
+    brios["NOTE"] = np.nan
+    brios["TYPE"] = "BRIOS"
+    brios = extract_attributes(brios)
 
-#CENTRES SOCIAUX RÉGIONAUX
-csr=gpd.read_file(path+"MN95_SSP_TPR_CSR.shp")
-csr.dtypes
-csr=csr[['NOM','VOIE','NUMERO','NPA','LOCALITE','geometry']]
-csr.columns=['NOM','RUE','NUMERO','NPA','LOCALITE','geometry']
-csr['NOTE']=np.nan
-csr['TYPE']='CSR'
+    # CENTRES MÉMOIRE
+    memoire = gpd.read_file(path + "MN95_SSP_TPR_CENTRE_MEMOIRE.shp")
+    memoire.dtypes
+    memoire.rename(columns={"VOIE": "RUE"}, inplace=True)
+    memoire["EXPLOITANT"] = np.nan
+    memoire["NOTE"] = np.nan
+    memoire["TYPE"] = "CENTRE MEMOIRE"
+    memoire = extract_attributes(memoire)
 
-#STRUCTURES D'ACCOMPAGNEMENT MÉDICO-SOCIALES
-sams=gpd.read_file(path+"MN95_SSP_TPR_SAMS.shp")
-sams.dtypes
-sams['NOTE']=sams['TYPE']+','+sams['EXPLOITANT']
-sams=sams[['NOM','VOIE','NUMERO','NPA','LOCALITE','NOTE','geometry']]
-sams.columns=['NOM','RUE','NUMERO','NPA','LOCALITE','NOTE','geometry']
-sams['TYPE']='SAMS'
+    # AGENCES D'ASSURANCES SOCIALES
+    aas = gpd.read_file(path + "MN95_SSP_TPR_AAS.shp")
+    aas.dtypes
+    aas.rename(columns={"VOIE": "RUE"}, inplace=True)
+    aas["EXPLOITANT"] = np.nan
+    aas["NOTE"] = np.nan
+    aas["TYPE"] = "AAS"
+    aas = extract_attributes(aas)
 
-#SITES D'AMBULANCES
-ambulance=gpd.read_file(path+"MN95_SSP_TPR_AMBULANCE.shp")
-ambulance.dtypes
-ambulance=ambulance[['NOM','VOIE','NUMERO','NPA','LOCALITE','TYPE','geometry']]
-ambulance.columns=['NOM','RUE','NUMERO','NPA','LOCALITE','NOTE','geometry']
-ambulance['TYPE']='AMBULANCE'
+    # CENTRES SOCIAUX RÉGIONAUX
+    csr = gpd.read_file(path + "MN95_SSP_TPR_CSR.shp")
+    csr.dtypes
+    csr.rename(columns={"VOIE": "RUE"}, inplace=True)
+    csr["EXPLOITANT"] = np.nan
+    csr["NOTE"] = np.nan
+    csr["TYPE"] = "CSR"
+    csr = extract_attributes(csr)
 
-#ÉTABLISSEMENTS PSYCHO-SOCIAUX MÉDICALISÉS
-epsm=gpd.read_file(path+"MN95_SSP_TPR_EPSM.shp")
-epsm.dtypes
-epsm=epsm[['NOM','RUE','NUMERO','NPA','LOCALITE','EXPLOITANT','geometry']]
-epsm.columns=['NOM','RUE','NUMERO','NPA','LOCALITE','NOTE','geometry']
-epsm['TYPE']='EPSM'
+    # STRUCTURES D'ACCOMPAGNEMENT MÉDICO-SOCIALES
+    sams = gpd.read_file(path + "MN95_SSP_TPR_SAMS.shp")
+    sams.dtypes
+    sams.rename(columns={"VOIE": "RUE"}, inplace=True)
+    sams["NOTE"] = sams["CATEGORIE"] + " (" + sams["TYPE"] + ")"
+    sams["TYPE"] = "SAMS"
+    sams = extract_attributes(sams)
 
-#ÉTABLISSEMENTS SOCIO-ÉDUCATIFS
-ese=gpd.read_file(path+"MN95_SSP_TPR_ESE.shp")
-ese.dtypes
-ese=ese[['NOM','VOIE','NUMERO','NPA','LOCALITE','EXPLOITANT','geometry']]
-ese.columns=['NOM','RUE','NUMERO','NPA','LOCALITE','NOTE','geometry']
-ese['TYPE']='ESE'
+    # SITES D'AMBULANCES
+    ambulance = gpd.read_file(path + "MN95_SSP_TPR_AMBULANCE.shp")
+    ambulance.dtypes
+    ambulance.rename(columns={"VOIE": "RUE", "TYPE": "NOTE"}, inplace=True)
+    ambulance["EXPLOITANT"] = np.nan
+    ambulance["TYPE"] = "AMBULANCE"
+    ambulance["URL"] = np.nan
+    ambulance = extract_attributes(ambulance)
 
-#Concatenate dataframes
-institutions = pd.concat([urgences, dentaire, soinsaigus, cms, osad, hnm, pharmacies, prevention, brios, memoire, aas, csr, sams, ambulance, epsm, ese], axis=0)
-institutions.reset_index(inplace=True, drop=True)
+    # ÉTABLISSEMENTS PSYCHO-SOCIAUX MÉDICALISÉS
+    epsm = gpd.read_file(path + "MN95_SSP_TPR_EPSM.shp")
+    epsm.dtypes
+    epsm.rename(columns={"VOIE": "RUE"}, inplace=True)
+    epsm["NOTE"] = "Capacité: " + epsm["CAPACITE"].astype(int).apply(str)
+    epsm["TYPE"] = "EPSM"
+    epsm = extract_attributes(epsm)
 
-
-################
-#DATA WRANGLING#
-################
-
-#Convert NPA to integer
-institutions['NPA']=institutions.NPA.map(int)
-
-#Convert all in upper case + remove accents
-institutions['NOM']=institutions.NOM.map(g.strip_accents).map(str.upper)
-institutions['RUE']=institutions.RUE.map(g.strip_accents).map(str.upper)
-institutions['LOCALITE']=institutions.LOCALITE.map(g.strip_accents).map(str.upper)
-institutions.loc[~institutions.NOTE.isna(),'NOTE']=institutions.loc[~institutions.NOTE.isna(),'NOTE'].map(g.strip_accents).map(str.upper)
-
-#Drop index
-institutions.reset_index(drop=False,inplace=True)
-
-
-##################
-#ADD TO GEOSAN DB#
-##################
-
-db.import_data('geosan','aladoy',institutions,'institutions_medicosociales','index',idx_geom=True)
+    # ÉTABLISSEMENTS SOCIO-ÉDUCATIFS
+    ese = gpd.read_file(path + "MN95_SSP_TPR_ESE.shp")
+    ese.dtypes
+    ese.rename(columns={"VOIE": "RUE"}, inplace=True)
+    ese["NOTE"] = "Capacité: " + ese["CAPACITE"].astype(int).apply(str)
+    ese["TYPE"] = "ESE"
+    ese = extract_attributes(ese)
 
 
-####################
-#FILL WITH NEW DATA#
-####################
+    # ÉTABLISSEMENTS MEDICAUX-SOCIAUX
+    ems = gpd.read_file(path + "MN95_SSP_TPR_EMS.shp")
+    ems.dtypes
+    ems.rename(columns={"VOIE": "RUE", "MISSION": "NOTE"}, inplace=True)
+    ems["EXPLOITANT"] = np.nan
+    ems["TYPE"] = "EMS"
+    ems = extract_attributes(ems)
 
-#UI
+    # Concatenate dataframes
+    institutions = pd.concat(
+        [
+            urgences,
+            dentaire,
+            soinsaigus,
+            cms,
+            ems,
+            osad,
+            hnm,
+            pharmacies,
+            prevention,
+            brios,
+            memoire,
+            aas,
+            csr,
+            sams,
+            ambulance,
+            epsm,
+            ese,
+        ],
+        axis=0,
+    )
+    institutions.reset_index(inplace=True, drop=True)
 
-new_institutions=[
-['P.A. FOYER EVAM','(UI)','EVAM',2118472],
-['P.A. FOYER EVAM','(UI)','EVAM',280100842],
-['P.A. FOYER EVAM','(UI)','EVAM',781202],
-['P.A. FOYER EVAM','(UI)','EVAM',849048],
-['P.A. FOYER EVAM','(UI)','EVAM',837277],
-['P.A. FOYER EVAM','(UI)','EVAM',781417],
-['P.A. FOYER EVAM','(UI)','EVAM',886938],
-['P.A. FOYER EVAM','(UI)','EVAM',2118704],
-['P.A. FOYER EVAM','(UI)','EVAM',887659],
-['P.A. FOYER EVAM','(UI)','EVAM',851754],
-['P.A. FOYER EVAM','(UI)','EVAM',3162384],
-['P.A. FOYER EVAM','(UI)','EVAM',9031306],
-['P.A. FOYER EVAM','(UI)','EVAM',845507],
-['P.A. FOYER EVAM','(UI)','EVAM',280099387],
-['SCTP','(UI)','SCTP',2119195],
-['SCTP','(UI)','SCTP',840334],
-['SCTP','(UI)','SCTP',400001368],
-['EMS BOIS-GENTIL- MAILLEFER','(UI) FONDATION BOIS-GENTIL','SAMS',280073909],
-['EMS SAUVABELIN','(UI) FONDATION BOIS-GENTIL','EMS',280076115],
-['FOYER BOIS-GENTIL','(UI)','EPSM',887728],
-['RESIDENCE LES NOVALLES','(UI)','SAMS',786932],
-['RESIDENCE LES TREMIERES','(UI)','SAMS',887683],
-['EMS LA ROZAVERE','(UI)','SAMS',887656],
-["EMS L'ORIEL",'(UI)','SAMS',787749],
-["EMS MEILLERIE",'(UI)','SAMS',887678],
-["LES PALMIERS",'(UI) FONDATION BALCONS DU LAC','SAMS',280058094],
-["LE PARASOL",'(UI) FONDATION BALCONS DU LAC','CAT',280058094],
-["EMS CLAIR-SOLEIL",'(UI)','SAMS',3163177],
-["EMS LE HOME / LES PINS - SITE LE HOME",'(UI)','SAMS',786573],
-["EMS LE HOME / LES PINS - SITE LES PINS",'(UI)','SAMS',887641],
-["LES OLIVIERS",'(UI) SITE PONTAISE','EPSM',887719],
-["LES BERGES DU LEMAN","(UI)","EPSM",841211],
-["ASSOCIATION SAINTE FAMILLE","(UI)","ESE",280091714],
-["FOYER DE COUR","(UI) FONDATION LA RAMBARDE","ESE",886377],
-["AEME MONTELLY","(UI) FONDATION JEUNESSE ET FAMILLES","ESE",887789],
-["LA ROSE DES VENTS","(UI) FONDATION DEO GRATIAS","ESE",880405],
-["EMS LA FONTANELLE","(UI)","SAMS",841142],
-["EMS PRE-FLEURI","(UI)","SAMS",280091860],
-["LA CIGALE","(UI)","ESE",881092],
-["SERIX","(UI)","ESE",822030],
-["RÉSIDENCE O TALENT","(UI)","SAMS",280098514],
-["FONDATION LOUIS BOISSONNET","(UI)","SAMS",887636],
-["EMS LE PAVILLON","(UI)","SAMS",1770293],
-["RIVE-NEUVE","(UI) FONDATION RIVE-NEUVE","SAMS",280074885],
-["FONDATION LES CHATEAUX","(UI)","SAMS",868276],
-["FOND-VERT","(UI)","SAMS",828560],
-["FONDATION SILO","(UI)","SAMS",796203],
-["RESIDENCE LA GOTTAZ","(UI) TERTIANUM","SAMS",9020584],
-["L'EAUDINE","(UI) TERTIANUM","SAMS",9031062],
-["JOLI AUTOMNE","(UI) TERTIANUM","SAMS",796593],
-["BEL-HORIZON","(UI) TERTIANUM","SAMS",3163360],
-["LE PACIFIC","(UI) TERTIANUM","SAMS",280054181],
-["EMS LES JARDINS DU LEMAN","(UI) GHOL","SAMS",280078440],
-["EMS LES ARCADES","(UI) GROUPE ODYSSE","SAMS",791784],
-["EMS ODYSSE","(UI) GROUPE ODYSSE","SAMS",791785],
-["EMS CHANTEMERLE","(UI) GROUPE ODYSSE","SAMS",887648],
-["PRE DE LA TOUR","(UI) FONDATION PRE PARISET","SAMS",3102002],
-["EMS HAUTE COMBE","(UI) FONDATION PRE PARISET","SAMS",786574],
-["EPSM LES TILLEULS","(UI) GROUPE ALTAGE","EPSM",805580],
-["EMS LES JARDINS DE LA PLAINE","(UI) GROUPE ALTAGE","SAMS",846442],
-["EMS PARC DE VALENCY",'(UI) GROUPE ALTAGE','SAMS',887765],
-["EMS LA CHOCOLATIERE",'(UI) GROUPE ALTAGE','SAMS',9020439],
-["EMS L'ESCAPADE",'(UI) GROUPE ALTAGE','SAMS',9019388],
-["EPSM LA SYLVABELLE",'(UI) GROUPE ALTAGE','SAMS',817886],
-["PENSION LA TRAVERSE",'(UI) GROUPE ALTAGE','SAMS',870774],
-["LES PRES",'(UI) GROUPE ALTAGE','SAMS',280079834],
-["L'ECHAPPEE",'(UI) GROUPE ALTAGE','SAMS',884186],
-["EMS COTTIER-BOYS",'(UI)','SAMS',864922],
-["EMS LES LYS",'(UI) FONDATION PRIMEROCHE','SAMS',3101929],
-["EMS LE GRAND PRE",'(UI) FONDATION PRIMEROCHE','SAMS',280077179],
-["EMS LA ROSIERE-SOERENSEN",'(UI) SITE DE SOERENSEN','SAMS',859380],
-["EMS LA ROSIERE-SOERENSEN",'(UI) SITE DE LA ROSIERE','SAMS',859384],
-["EMS LES BOVERESSES",'(UI)','SAMS',881192],
-["RESIDENCE LE BYRON",'(UI)','SAMS',856933],
-["LES HIRONDELLES",'(UI) FONDATION CLAIRE MAGNIN','SAMS',835192],
-["DOMAINE DE LA GRACIEUSE",'(UI)','SAMS',797828],
-["RESIDENCE NOVA VITA",'(UI)','SAMS',9031051],
-["EMS CHATEAU DE LA RIVE",'(UI)','SAMS',791786],
-["EMS LES LAURELLES",'(UI)','SAMS',836606],
-["EMS LE PETIT BOIS",'(UI)','SAMS',808637],
-["RESIDENCE CLOS BERCHER",'(UI)','SAMS',867049],
-["LES PERGOLAS",'(UI) FONDATION CLAIRE MAGNIN','SAMS',788512],
-["EMS MONTCHOISI",'(UI) GROUPE SAPHIR','SAMS',280102380],
-["EMS LA VENOGE",'(UI)','SAMS',865353],
-["EMS SILO",'(UI)','SAMS',280127822],
-["EMS LA CLEF DES CHAMPS",'(UI)','SAMS',829086],
-["EMS LE CHENE",'(UI)','SAMS',280100852],
-["FONDATION ABS / LE PASSAGE",'(UI)','CAT',882327],
-["EMS LA VERNIE",'(UI) FONDATION PRIMEROSE','SAMS',280060899],
-["EMS JOLI-BOIS",'(UI) FONDATION PRIMEROSE','SAMS',837269],
-["EMS L'ARBRE DE VIE",'(UI)','SAMS',280096261],
-["LA FEUILLERE",'(UI) FONDATION LA FEUILLERE','ESE',782678],
-["FOYER DE CHAILLY",'(UI) FONDATION LA POMMERAIE','ESE',887651],
-["FOYER LA POMMERAIE",'(UI) FONDATION LA POMMERAIE','ESE',797635],
-["EMS BEAU-SITE",'(UI) FONDATION BEAU-SITE','SAMS',835553],
-["EMS MONTBRILLANT",'(UI) FONDATION BEAU-SITE','SAMS',835632],
-["FOYER VALVERT",'(UI) FONDATION LA RAMBARDE','ESE',786576],
-["FOYER CARREFOUR-ECHALLENS",'(UI) FONDATION LA RAMBARDE','ESE',887761],
-["FOYER DE MEILLERIE",'(UI) FONDATION LA RAMBARDE','ESE',2119116],
-["FOYER APAC",'(UI) FONDATION LA RAMBARDE','ESE',300000781],
-["EMS LE FLON",'(UI) FONDATION DU RELAIS','SAMS',821722],
-["EMS BURIER",'(UI) FONDATION MAISON DE RETRAITE DE BURIER','SAMS',280001703],
-["EMS PRAZ-SECHAUD I",'(UI) HOME-AGE SA','SAMS',881229],
-["EMS BRU",'(UI)','EPSM',280012862],
-["EMS FONDATION GAMBETTA","(UI)","EMS",837690],
-["FONDATION LA VENOGE","(UI)","EMS",866139],
-["EMS PRAZ JORET","(UI)","EMS",821527],
-["EMS VICTORIA RESIDENCE","(UI) GROUPE ODYSSE","EMS",849997],
-["PENSION LE LEMAN","(UI) FONDATION RESONNANCE","SAMS",802083],
-["EMS LA PENSEE","(UI) FONDATION RESONNANCE","SAMS",782679],
-["EMS MONT-RIANT","(UI) FONDATION SAPHIR","EMS",280097546],
-["EMS LA LEMBAZ","(UI) FONDATION LES NOISETIERS","EMS",280096845],
-["FONDATION CSC ST-BARTHELEMY","(UI)","ESE",870351],
-["FOYER AGAPE","(UI)","SAMS",831339],
-["PENSION DE L'ETOILE","(UI)","SAMS",785549],
-["EMS PETIT-FLON","(UI) FONDATION BOIS-GENTIL","EMS",2119301],
-["FONDATION MORIJA","(UI)","EMS",846157],
-["FOYER BELLEVUE","(UI) FONDATION JEUNESSE ET FAMILLES","ESE",794884],
-["EMS LA RENAISSANCE","(UI)","EMS",859938],
-["LA CITE DES INVENTIONS","(UI) FONDATION DE L'ORME","PPS",796725],
-["EMS RESIDENCE GRANDE-FONTAINE","(UI)","EMS",849428],
-["EPSM DUC","(UI) FONDATION LES NOISETIERS","EPSM",825453],
-["EMS RESIDENCE ODYSSE","(UI) GROUPE ODYSSE","EMS",791785],
-["FONDATION DE SERIX","(UI)","SAMS",822030],
-["INSTITUT PRE-DE-VERT","(UI)","ESE",829348],
-["FOYER DE LULLY","(UI) FONDATION JEUNESSE ET FAMILLES","ESE",797837]
-]
+    ################
+    # DATA WRANGLING#
+    ################
 
-#Create dataframe
-new_institutions=pd.DataFrame(new_institutions,columns=['nom','note','type','egid'])
+    # Convert NPA to integer
+    institutions["NPA"] = institutions.NPA.map(int)
 
-#CONNECT TO GEOSAN DB
-engine,conn,cursor=db.connect_db('geosan','aladoy')
+    # Convert all in upper case + remove accents
+    institutions["NOM"] = institutions.NOM.map(g.strip_accents).map(str.upper)
+    institutions["RUE"] = institutions.RUE.map(g.strip_accents).map(str.upper)
+    institutions["LOCALITE"] = institutions.LOCALITE.map(g.strip_accents).map(str.upper)
+    institutions.loc[~institutions.NOTE.isna(), "NOTE"] = (
+        institutions.loc[~institutions.NOTE.isna(), "NOTE"]
+        .map(g.strip_accents)
+        .map(str.upper)
+    )
+    institutions.loc[~institutions.EXPLOITANT.isna(), "EXPLOITANT"] = (
+        institutions.loc[~institutions.EXPLOITANT.isna(), "EXPLOITANT"]
+        .map(g.strip_accents)
+        .map(str.upper)
+    )
 
-#Find info (rue, numero, etc.) from regbl
-def regbl_info(egid):
-    cursor.execute('SELECT strname,deinr,dplz4,gdename,gkode,gkodn FROM regbl_2021 WHERE egid={}'.format(egid))
-    res=cursor.fetchone()
-    return res[0],res[1],res[2],res[3],res[4],res[5]
+    # Drop index
+    institutions.reset_index(drop=False, inplace=True)
 
-new_institutions['rue'],new_institutions['numero'],new_institutions['npa'],new_institutions['localite'],new_institutions['gkode'],new_institutions['gkodn']=zip(*new_institutions.egid.map(regbl_info))
+    ##################
+    # ADD TO GEOSAN DB#
+    ##################
 
-#Convert to geodataframe
-new_institutions=new_institutions.assign(geometry=new_institutions.apply(lambda row: Point(row.gkode, row.gkodn),axis=1))
-new_institutions=gpd.GeoDataFrame(new_institutions, geometry=new_institutions.geometry, crs="EPSG:2056")
+    db.import_data(
+        "geosan",
+        "aladoy",
+        institutions,
+        "institutions_medicosociales",
+        "index",
+        idx_geom=True,
+    )
 
-#Find max index in DB
-cursor.execute("SELECT max(index) FROM institutions_medicosociales")
-max_id=cursor.fetchone()[0]
 
-#Change index in new_institutions
-new_institutions['index']=new_institutions.index+max_id+1
 
-#Reorder columns to match other institutions
-new_institutions=new_institutions[['index','nom','rue','numero','npa','localite','geometry','note','type']]
+def extract_attributes(df):
 
-#Append to GEOSAN DB
-new_institutions.to_postgis('institutions_medicosociales', engine,if_exists='append')
+    df = df[
+        [
+            "NOM",
+            "TYPE",
+            "EXPLOITANT",
+            "RUE",
+            "NUMERO",
+            "NPA",
+            "LOCALITE",
+            "URL",
+            "NOTE",
+            "geometry",
+        ]
+    ]
 
-#CLOSE CONNECTION WITH GEOSAN DB
-conn.close()
+    return df
+
+
+if __name__ == "__main__":
+    main()
