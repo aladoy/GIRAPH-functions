@@ -275,6 +275,29 @@ db.import_data(
 )
 
 
+# PLAYGROUNDS (OSM, 2022)
+playgrounds = gpd.read_file(
+    os.sep.join([geosan_db_dir, "PLAYGROUNDS VD/Jan 23/playgrounds_VD_2056.gpkg"])
+)
+playgrounds.reset_index(drop=False, inplace=True)
+db.import_data(
+    "geosan", "aladoy", playgrounds, "playgrounds", "index", ifexists="replace"
+)
+
+# PUBLIC TRANSPORT (ARE, 2022)
+pub_transport = gpd.read_file(
+    os.sep.join([geosan_db_dir, "PUBLIC TRANSPORT/2022/OeV_Gueteklassen_ARE.gpkg"]),
+    layer="OeV_Haltestellen_ARE",
+)
+db.import_data(
+    "geosan",
+    "aladoy",
+    pub_transport,
+    "public_transport",
+    "Haltestellen_No",
+    ifexists="replace",
+)
+
 # # VD npa
 # npa = gpd.read_file(r"./GEOSAN DB/data/MICROGIS NPA 2019/SF_COMPACT_LC_2019.shp")
 # npa.crs
