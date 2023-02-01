@@ -28,7 +28,7 @@ def main():
     # IMPORT DATA#
     #############
 
-    path = r"/mnt/data/GEOSAN/GEOSAN DB/data/INSTITUTIONS MEDICO-SOCIALES VD/2022/"
+    path = r"/mnt/data/GEOSAN/GEOSAN DB/data/INSTITUTIONS MEDICO-SOCIALES VD/2023/"
 
     # URGENCES
     urgences = gpd.read_file(path + "MN95_SSP_TPR_URGENCE.shp")
@@ -169,7 +169,6 @@ def main():
     ese["TYPE"] = "ESE"
     ese = extract_attributes(ese)
 
-
     # ÉTABLISSEMENTS MEDICAUX-SOCIAUX
     ems = gpd.read_file(path + "MN95_SSP_TPR_EMS.shp")
     ems.dtypes
@@ -240,7 +239,6 @@ def main():
         "index",
         idx_geom=True,
     )
-
 
 
 def extract_attributes(df):

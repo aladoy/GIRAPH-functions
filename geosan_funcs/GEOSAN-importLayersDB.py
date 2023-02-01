@@ -293,87 +293,10 @@ db.import_data(
     "geosan",
     "aladoy",
     pub_transport,
-    "public_transport",
+    "public_transport_stops",
     "Haltestellen_No",
     ifexists="replace",
 )
-
-# # VD npa
-# npa = gpd.read_file(r"./GEOSAN DB/data/MICROGIS NPA 2019/SF_COMPACT_LC_2019.shp")
-# npa.crs
-# npa = npa.to_crs({"init": "epsg:2056"})  # Convert CRS from epsg:21781 to epsg:2056
-# # Keep only VD features
-# npa = npa[npa.KT == "VD"]
-# import_data(npa, "npa", "lcid", True)
-
-# # VD microregions
-# microregions = gpd.read_file(
-#     r"./GEOSAN DB/data/MICROREGIONS 2017/JOOSTSPECIAL_NB_2017.shp"
-# )
-# microregions.crs
-# import_data(microregions, "microregions", "nbid", True)
-
-# # INHABITED HECTARES (STATPOP)
-# # Read Statpop data file (CSV)
-# statpop = pd.read_csv(r"./GEOSAN DB/data/STATPOP 2019/STATPOP2019.csv", sep=",")
-# statpop.shape
-# # Move to RELI centroids
-# statpop[["X_KOORD", "Y_KOORD", "E_KOORD", "N_KOORD"]] = statpop[
-#     ["X_KOORD", "Y_KOORD", "E_KOORD", "N_KOORD"]
-# ].applymap(lambda x: x + 50)
-# # Create a geometry column using Shapely
-# statpop = statpop.assign(
-#     geometry=statpop.apply(lambda row: Point(row.E_KOORD, row.N_KOORD), axis=1)
-# )
-# # Convert to geodataframe
-# statpop = gpd.GeoDataFrame(
-#     statpop, geometry=statpop.geometry, crs={"init": "epsg:2056"}
-# )
-# # Add lat lon
-# statpop["lon"] = statpop.to_crs({"init": "epsg:4326"}).geometry.x
-# statpop["lat"] = statpop.to_crs({"init": "epsg:4326"}).geometry.y
-# shapely.speedups.enable()  # Speed query
-# statpop = gpd.overlay(statpop, canton)  # Keep only VD hectares
-# statpop.shape
-# import_data(statpop, "inhabited_ha_centroid", "reli", True)
-
-# # Create same file with polygons geometry
-# cursor.execute(
-#     "CREATE TABLE inhabited_ha AS SELECT reli,ST_Expand(geometry,50) AS geometry FROM inhabited_ha_centroid"
-# )
-# conn.commit()
-
-# # STATPOP INDIVIDUALS (STATPOP NON PROTEGE)
-# statpop_indiv = pd.read_csv(
-#     r"./GEOSAN DB/data/STATPOP NON PROTEGE 2017/STATPOP_2016_VD.csv", sep=";"
-# )
-# # Create unique index
-# statpop_indiv.reset_index(drop=False, inplace=True)
-# # Create a geometry column using Shapely
-# statpop_indiv = statpop_indiv.assign(
-#     geometry=statpop_indiv.apply(
-#         lambda row: Point(row.GEOCOORDE, row.GEOCOORDN), axis=1
-#     )
-# )
-# # Convert to geodataframe
-# statpop_indiv = gpd.GeoDataFrame(
-#     statpop_indiv, geometry=statpop_indiv.geometry, crs={"init": "epsg:2056"}
-# )
-# import_data(statpop_indiv, "statpop_indiv", "index", True)
-
-# # PUBLIC TRANSPORTS
-# pt = pd.read_csv(
-#     r"./GEOSAN DB/data/PUBLIC TRANSPORT OFT 2021/PointExploitation.csv",
-#     sep=",",
-#     encoding="iso-8859-1",
-# )
-# pt[pt.duplicated(subset=["Numero"])]  # Check if Numero is unique -> True
-# # Create a geometry column using Shapely
-# pt = pt.assign(geometry=pt.apply(lambda row: Point(row.E, row.N), axis=1))
-# pt = gpd.GeoDataFrame(
-#     pt, geometry=pt.geometry, crs={"init": "epsg:2056"}
-# )  # Convert to geodataframe
-# import_data(pt, "public_transport_stops", "Numero", True)
 
 # Close the connection
 conn.close()
