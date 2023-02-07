@@ -13,7 +13,8 @@ def connect_db(db, user):
             "postgresql+psycopg2://{}:{}@localhost/{}".format(user, pw, db)
         )  # Create SQLAlchemy engine
         conn = ps.connect(
-            "dbname='{}' user='{}' host='localhost' password='{}'".format(db, user, pw)
+            "dbname='{}' user='{}' host='localhost' password='{}'".format(
+                db, user, pw)
         )  # Create a connection object
         cursor = conn.cursor()  # Create a cursor object
         print("Sucessfully connected to " + db.upper() + " DB")
@@ -25,7 +26,7 @@ def connect_db(db, user):
 
 # FUNCTION TO IMPORT DATA (SPATIAL OR NO) INTO DB
 def import_data(
-    db, user, dat, name, pk, schema=None, idx_geom=False, ifexists="replace"
+    db, user, dat, name, pk, schema='public', idx_geom=False, ifexists="replace"
 ):
 
     from sqlalchemy import create_engine
@@ -35,13 +36,20 @@ def import_data(
 
     engine, conn, cursor = connect_db(db, user)
 
+    # drop table cascade if "replace" option
+    if ifexists == "replace":
+
+        cursor.execute("DROP TABLE {}.{} CASCADE;".format(schema, name))
+        conn.commit()
+
     print(dat.shape)
     dat.columns = map(str.lower, dat.columns)  # convert columns to lower case
 
     if isinstance(dat, gpd.GeoDataFrame):
         print("Geometry Type :" + dat.geometry.geom_type.unique()[0])
         print('CRS :' + str(dat.crs))
-        dat.to_postgis(name, engine, schema=schema, if_exists=ifexists)  # Add to postgis
+        dat.to_postgis(name, engine, schema=schema,
+                       if_exists=ifexists)  # Add to postgis
 
     else:
         dat.to_sql(
