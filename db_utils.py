@@ -39,8 +39,19 @@ def import_data(
     # drop table cascade if "replace" option
     if ifexists == "replace":
 
-        cursor.execute("DROP TABLE {}.{} CASCADE;".format(schema, name))
-        conn.commit()
+        try:
+
+            cursor.execute(
+                "select table_name from information_schema.tables where table_name = '{}' UNION select matviewname from pg_matviews where matviewname = '{}';".format(name, name))
+            cursor.fetchone()[0]
+
+            cursor.execute("DROP TABLE {}.{} CASCADE;".format(schema, name))
+            conn.commit()
+
+        except TypeError:
+
+            pass
+
 
     print(dat.shape)
     dat.columns = map(str.lower, dat.columns)  # convert columns to lower case
