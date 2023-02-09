@@ -98,7 +98,8 @@ districts.columns = [
     "geometry",
 ]
 districts = u.convert_3D_to_2D(districts)
-db.import_data("geosan", "aladoy", districts, "districts", "uuid", idx_geom=True)
+db.import_data("geosan", "aladoy", districts,
+               "districts", "uuid", idx_geom=True)
 
 # Municipalities
 # Use SWISS TLM REGIO dataset instead of SWISS BOUNDARIES because lakes are separated from municipalities
@@ -131,7 +132,8 @@ centroid = gpd.read_file(
     layer="statpop_centroid",
 )
 centroid = centroid[["RELI", "E_KOORD", "N_KOORD", "B21BTOT", "geometry"]]
-db.import_data("geosan", "aladoy", centroid, "reli_centroid", "reli", idx_geom=True)
+db.import_data("geosan", "aladoy", centroid,
+               "reli_centroid", "reli", idx_geom=True)
 
 ha_polygon = gpd.read_file(
     os.sep.join([geosan_db_dir, "STATPOP/2021/statpop.gpkg"]),
@@ -139,7 +141,8 @@ ha_polygon = gpd.read_file(
     layer="statpop_polygon",
 )
 ha_polygon = ha_polygon[["RELI", "E_KOORD", "N_KOORD", "B21BTOT", "geometry"]]
-db.import_data("geosan", "aladoy", ha_polygon, "reli_polygon", "reli", idx_geom=True)
+db.import_data("geosan", "aladoy", ha_polygon,
+               "reli_polygon", "reli", idx_geom=True)
 
 
 # MICROREGIONS
@@ -156,7 +159,8 @@ mha_rdemo = pd.read_csv(
     skipfooter=1,
 )
 mha_income = pd.read_csv(
-    os.sep.join([geosan_db_dir, "MICROGIS/2021/INCOME_IQMD/HA_INCOME_IQMD.csv"]),
+    os.sep.join(
+        [geosan_db_dir, "MICROGIS/2021/INCOME_IQMD/HA_INCOME_IQMD.csv"]),
     engine="python",
     skipfooter=1,
 )
@@ -198,7 +202,8 @@ mmun_soceco = pd.read_csv(
 )
 mmun_soceco.columns = mmun_soceco.columns.str.replace(" ", "")
 mmun_rsoceco = pd.read_csv(
-    os.sep.join([geosan_db_dir, "MICROGIS/2021/SOCECO/SF_SOCECORATIO_GD_2021.csv"]),
+    os.sep.join(
+        [geosan_db_dir, "MICROGIS/2021/SOCECO/SF_SOCECORATIO_GD_2021.csv"]),
     encoding="iso-8859-1",
 )
 mmun_rsoceco.columns = mmun_rsoceco.columns.str.replace(" ", "")
@@ -241,11 +246,13 @@ db.import_data("geosan", "aladoy", mmun, "microgis_mun", "gdenr")
 statpop = pd.read_csv(
     os.sep.join([geosan_db_dir, "STATPOP/2021/STATPOP2021.csv"]), sep=";"
 )
-db.import_data("geosan", "aladoy", statpop, "statpop2021", "RELI", ifexists="replace")
+db.import_data("geosan", "aladoy", statpop,
+               "statpop2021", "RELI", ifexists="replace")
 
 
 # REGBL (2021)
-vd_addr = pd.read_csv(os.sep.join([geosan_db_dir, "REGBL/2021/VD.csv"]), sep=";")
+vd_addr = pd.read_csv(os.sep.join(
+    [geosan_db_dir, "REGBL/2021/VD.csv"]), sep=";")
 # Remove accents in object type
 vd_addr["GDENAME"] = vd_addr.GDENAME.map(g.strip_accents)
 vd_addr["STRNAME"] = vd_addr.STRNAME.map(g.strip_accents)
@@ -260,7 +267,8 @@ vd_addr = vd_addr.assign(
 )
 vd_addr = gpd.GeoDataFrame(vd_addr, geometry=vd_addr.geometry, crs="EPSG:2056")
 # Convert to geodataframe
-db.import_data("geosan", "aladoy", vd_addr, "regbl2021", "egid,edid", idx_geom=True)
+db.import_data("geosan", "aladoy", vd_addr,
+               "regbl2021", "egid,edid", idx_geom=True)
 
 
 # DISTANCE TO SERVICES (OFS, 2018)
@@ -277,7 +285,8 @@ db.import_data(
 
 # PLAYGROUNDS (OSM, 2022)
 playgrounds = gpd.read_file(
-    os.sep.join([geosan_db_dir, "PLAYGROUNDS VD/Jan 23/playgrounds_VD_2056.gpkg"])
+    os.sep.join(
+        [geosan_db_dir, "PLAYGROUNDS VD/Jan 23/playgrounds_VD_2056.gpkg"])
 )
 playgrounds.reset_index(drop=False, inplace=True)
 db.import_data(
@@ -286,7 +295,8 @@ db.import_data(
 
 # PUBLIC TRANSPORT (ARE, 2022)
 pub_transport = gpd.read_file(
-    os.sep.join([geosan_db_dir, "PUBLIC TRANSPORT/2022/OeV_Gueteklassen_ARE.gpkg"]),
+    os.sep.join(
+        [geosan_db_dir, "PUBLIC TRANSPORT/2022/OeV_Gueteklassen_ARE.gpkg"]),
     layer="OeV_Haltestellen_ARE",
 )
 db.import_data(
