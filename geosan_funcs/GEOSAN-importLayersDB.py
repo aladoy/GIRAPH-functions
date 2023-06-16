@@ -260,6 +260,30 @@ def main():
     lakes.crs = 2056
     db.import_data("geosan", "aladoy", lakes, "lakes", "objectid", idx_geom=True)
 
+    # ROADS (SWISSTOPO, 2022)
+    roads = gpd.read_file(
+        os.sep.join(
+            [
+                geosan_db_dir,
+                "SWISS TLM REGIO/2022/swissTLMRegio_Product_LV95/Transportation/swissTLMRegio_Road.shp",
+            ]
+        )
+    )
+    roads.crs = 2056
+    db.import_data("geosan", "aladoy", roads, "roads", "objectid", idx_geom=True)
+
+    # BUILDINGS (SWISSTOPO, 2022)
+    build = gpd.read_file(
+        os.sep.join(
+            [
+                geosan_db_dir,
+                "SWISS TLM REGIO/2022/swissTLMRegio_Product_LV95/Buildings/swissTLMRegio_Building.shp",
+            ]
+        )
+    )
+    build.crs = 2056
+    db.import_data("geosan", "aladoy", build, "buildings", "objectid", idx_geom=True)
+
 
 if __name__ == "__main__":
     main()

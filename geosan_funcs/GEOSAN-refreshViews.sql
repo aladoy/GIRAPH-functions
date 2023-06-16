@@ -16,3 +16,6 @@ RETURNS INT AS $$
     RETURN 1;
   END 
 $$ LANGUAGE plpgsql;
+
+
+SELECT RefreshAllMaterializedViews()
