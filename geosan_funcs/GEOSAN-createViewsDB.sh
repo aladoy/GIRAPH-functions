@@ -47,8 +47,7 @@ SELECT r.* FROM reli_polygon r, vd_reli_point v WHERE v.reli=r.reli;
 
 CREATE MATERIALIZED VIEW vd_lakes
 AS
-SELECT * FROM lakes WHERE ST_INTERSECTS(geometry, SELECT ST_UNION(geometry) as geometry FROM cantons WHERE name='Vaud');
-
+SELECT * FROM lakes WHERE ST_INTERSECTS(geometry, (SELECT ST_UNION(geometry) as geometry FROM cantons WHERE name='Vaud'));
 
 CREATE MATERIALIZED VIEW vd_roads
 AS
