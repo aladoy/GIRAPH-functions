@@ -96,6 +96,25 @@ def main():
     )
 
     # MICROREGIONS
+    mreg = gpd.read_file(
+        os.sep.join(
+            [
+                geosan_db_dir,
+                "MICROGIS/MICROREGIONS 2017/JOOSTSPECIAL_NB_2017.shp",
+            ]
+        ),
+        driver="ESRI Shapefile",
+    )
+    mreg_dat = pd.read_csv(
+        os.sep.join(
+            [geosan_db_dir, "MICROGIS/MICROREGIONS 2017/JOOSTSPECIAL_NB_2017.csv"]
+        ),
+        engine="python",
+    )
+    mreg = pd.merge(mreg, mreg_dat, on="NBID", how="inner")
+    db.import_data(
+        "geosan", "aladoy", mreg, "microgis_microreg", "NBID", ifexists="replace"
+    )
 
     # HA LEVEL
     mha_demo = pd.read_csv(
